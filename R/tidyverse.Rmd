@@ -1,11 +1,10 @@
 # The tidyverse  {#tidyverse}
-rrr
+
 ```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
 ```
 
 ## Tidy data {#tidy-data}
-
 
 ```{r, echo=FALSE}
 library(dslabs)
@@ -23,13 +22,19 @@ head(tidy_data, 6)
 ```
 
 ```{r, echo=FALSE, message=FALSE}
-path <- system.file("extdata", package="dslabs")
-filename <- file.path(path, "fertility-two-countries-example.csv")
+path <- system.file("extdata", package="dslabs")   ##can't find the path
+filename <- file.path(path, "fertility-two-countries-example.csv")   #why not system.file??
 wide_data <- read_csv(filename)
 select(wide_data, country, `1960`:`1962`) |> as.data.frame()
 ```
 
 ## Exercises 
+
+**Tidy data:
+
+- Every column is a variable.
+- Every row is an observation.
+- Every cell is a single value.
 
 
 1\. Examine the built-in dataset `co2`. Which of the following is true:
@@ -39,6 +44,15 @@ b. `co2` is not tidy: we need at least one column with a character vector.
 c. `co2` is not tidy:  it is a matrix instead of a data frame.
 d. `co2` is not tidy: to be tidy we would have to wrangle it to have three columns (year, month and value), then each co2 observation would have a row.
 
+A??
+```{r, echo=FALSE}
+co2
+class(co2)  ##ts: time-series object
+is.data.frame(co2)
+is.matrix(co2)
+is.vector(co2)
+class(iris)
+```
 
 2\. Examine the built-in dataset  `ChickWeight`. Which of the following is true:
 
@@ -47,6 +61,11 @@ b.  `ChickWeight` is tidy: each observation (a weight) is represented by one row
 c.  `ChickWeight` is not tidy: we are missing the year column.
 d.  `ChickWeight` is tidy: it is stored in a data frame.
 
+B (what's the definition of tidy data???)
+```{r, echo=FALSE}
+ChickWeight
+class(ChickWeight)
+```
 
 3\. Examine the built-in dataset `BOD`. Which of the following is true:
 
@@ -55,24 +74,31 @@ b. `BOD` is not tidy: the first column is just an index.
 c. `BOD` is tidy: each row is an observation with two values (time and demand)
 d. `BOD` is tidy: all small datasets are tidy by definition.
 
+C
+```{r, echo=FALSE}
+BOD
+```
 
 4\. Which of the following built-in datasets is tidy (you can pick more than one):
 
 a. `BJsales`
 b. `EuStockMarkets`
-d. `DNase`
+c. `DNase`
 d. `Formaldehyde`
 e. `Orange`
 f. `UCBAdmissions`
+
+BCDE??
 
 
 ## Manipulating data frames
 
 ### Adding a column with `mutate`
 
-```{r, message=FALSE}
-library(dslabs)
+```{r, message=FALSE}  
+library(dslabs)    ##message??
 data("murders")
+library(dplyr)
 murders <- mutate(murders, rate = total / population * 100000)
 ```
 
@@ -91,7 +117,7 @@ filter(murders, rate <= 0.71)
 ### Selecting columns with `select`
 
 ```{r}
-new_table <- select(murders, state, region, rate)
+new_table <- select(murders, state, region, rate)  ##select(data,colname A, colname B,...)
 filter(new_table, rate <= 0.71)
 ```
 
@@ -115,6 +141,10 @@ murders <- mutate(murders, population_in_millions = population / 10^6)
 We can write `population` rather than `murders$population`. The function `mutate` knows we are grabbing columns from `murders`.
 
 Use the function `mutate` to add a murders column named `rate` with the per 100,000 murder rate as in the example code above. Make sure you redefine `murders` as done in the example code above ( murders <- [your code]) so we can keep using this variable.
+
+```{r, eval=FALSE}
+murders <- mutate(murders, rate=total/ population *10^5)
+```
 
 2\. If `rank(x)` gives you the ranks of `x` from lowest to highest, `rank(-x)` gives you the ranks from highest to lowest. Use the function `mutate` to add a column `rank` containing the rank, from highest to lowest murder rate. Make sure you redefine `murders` so we can keep using this variable.
 
@@ -147,6 +177,7 @@ Use `filter` to show the top 5 states with the highest murder rates. After we ad
 
 ```{r}
 filter(murders, rank<=5)
+filter(murders, rate<=1)
 ```
 
  
@@ -174,6 +205,7 @@ Create a new data frame called `murders_nw` with only the states from the Northe
 ```{r}
 murders_nw <- filter(murders, region %in% c("West", "Northeast"))
 murders_nw
+nrow(murders_nw)
 ```
 
 7\. Suppose you want to live in the Northeast or West **and** want the murder rate to be less than 1. We want to see the data for the states satisfying these options. Note that you can use logical operators with `filter`. Here is an example in which we filter to keep only small states in the Northeast region.
@@ -185,7 +217,7 @@ filter(murders, population < 5000000 & region == "Northeast")
 Make sure `murders` has been defined with `rate` and `rank` and still has all states. Create a table called `my_states` that contains rows for states satisfying both the conditions: it is in the Northeast or West and the murder rate is less than 1.  Use `select` to show only the state name, the rate, and the rank.
 
 ```{r}
-filter(murders, rate <=1 & region %in% c("West", "Northeast"))
+my_states <- filter(murders, rate <=1 & region %in% c("West", "Northeast"))|>select(state, rate,rank)
 ```
 
 ## The pipe: `|>` or `%>%`
@@ -241,13 +273,22 @@ Notice that `select` no longer has a data frame as the first argument. The first
     
 Repeat the previous exercise, but now instead of creating a new object, show the result and only include the state, rate, and rank columns. Use a pipe `|>` to do this in just one line.
 
+```{r, eval=FALSE}
+murders |>  select(state, rate, rank)
+data("murders")
+my_states <- mutate(murders, rate=total/population*100000) %>%
+  mutate(murders, rank=rank(-rate)) %>%
+  filter(region== c("Northeast", "West") & rate <1) %>%   ##why can't use "=="??
+  select(state, rate, rank, region)
+```
+
 2\. Reset `murders` to the original table by using `data(murders)`. Use a pipe to create a new data frame called `my_states` that considers only states in the Northeast or West which have a murder rate lower than 1, and contains only the state, rate and rank columns. The pipe should also have four components separated by three `|>`. The code should look something like this:
     
 ```{r, eval=FALSE}
 data(murders)
 my_states <- murders |>
   mutate(rate = total/population*10^5, rank = rank(-rate)) |> 
-  filter((region=="West" | region === "Northeast") & rate < 1) |> 
+  filter((region=="West" | region == "Northeast") & rate < 1) |> 
   select(state, rate, rank)
 my_states
 ```
@@ -292,6 +333,7 @@ summarize(murders, avg = mean(rate))
 us_murder_rate <- murders |>
   summarize(rate = sum(total) / sum(population) * 100000)
 us_murder_rate
+class(us_murder_rate)
 ```
 
 
@@ -317,19 +359,21 @@ heights |>
 ### Group then summarize with `group_by` {#group-by}
 
 ```{r}
-heights |> group_by(sex)
+heights |> group_by(sex)  ##group_by:a tidyverse function(開頭多了tibble和groups)
 ```
 
 ```{r}
 heights |> 
   group_by(sex) |>
-  summarize(average = mean(height), standard_deviation = sd(height))
+  summarize(average = mean(height), standard_deviation = sd(height)) 
+##如果sex是factor=>會依level排，如果是character=>會依字母順序派
 ```
 
 ```{r}
 murders |> 
   group_by(region) |>
-  summarize(median_min_max(rate))
+  mutate(rank=rank(-rate)) |>
+  summarize(median_min_max(rate),mean(rank))
 ```
 
 
@@ -347,10 +391,13 @@ us_murder_rate |> pull(rate)
 
 ```{r}
 us_murder_rate <- murders |> 
-  summarize(rate = sum(total) / sum(population) * 100000) |>
-  pull(rate)
-
+  summarize(rate = sum(total) / sum(population) * 100000)
 us_murder_rate
+class(us_murder_rate)
+
+us_murder_rate <- murders |> 
+  summarize(rate = sum(total) / sum(population) * 100000) |>
+  pull(rate)    #原本是data.frame, pull後會變成numeric (vector)  ###9/12 stops here###
 ```
 
 
@@ -363,26 +410,28 @@ class(us_murder_rate)
 
 ```{r}
 murders |>
-  arrange(population) |>
-  head()
+  rank(rate) |>
+  head()    ##arrange: from small to large   ##why can't use rank??
+
+rank(murders$rate)
 ```
 
 ```{r}
 murders |> 
-  arrange(rate) |>
+  arrange(-rate) |>
   head()
 ```
 
 ```{r, eval=FALSE}
 murders |> 
-  arrange(desc(rate)) 
+  arrange(desc(rate)) ##desc: just like -
 ```
 
 ### Nested sorting 
 
 ```{r}
 murders |> 
-  arrange(region, rate) |> 
+  arrange(region,rate) |>   #先依region、同一region再由rate排
   head()
 ```
 
@@ -391,6 +440,7 @@ murders |>
 
 ```{r}
 murders |> top_n(5, rate)
+murders |> top_n(-5, rate) #lowest 5
 ```
 
 
